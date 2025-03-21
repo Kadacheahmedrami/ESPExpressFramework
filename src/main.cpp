@@ -50,9 +50,9 @@ void setup() {
   // Route Definitions
   // -------------------------
   
-  // Simple GET route on root "/"
+  // Serve the index.html file on the root "/"
   app.get("/", [](Request &req, Response &res) {
-    res.send("<h1>Welcome to ESPExpress!</h1><p>This is the home page.</p>");
+    res.sendFile("/www/index.html");
   });
   
   // GET route with a dynamic parameter: /user/:id

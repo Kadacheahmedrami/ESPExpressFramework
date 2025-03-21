@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ESPExpress Library Documentation</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      margin: 0;
+      padding: 0;
+      background: #f4f7f9;
+      color: #333;
+      line-height: 1.6;
+    }
+    header {
+      background: #34495e;
+      color: #fff;
+      padding: 1rem 2rem;
+      text-align: center;
+    }
+    header h1 {
+      margin: 0;
+      font-size: 2rem;
+    }
+    nav {
+      background: #2c3e50;
+      padding: 0.5rem 2rem;
+      text-align: center;
+    }
+    nav a {
+      color: #ecf0f1;
+      margin: 0 1rem;
+      text-decoration: none;
+      font-weight: bold;
+    }
+    .container {
+      padding: 2rem;
+      max-width: 900px;
+      margin: auto;
+    }
+    section {
+      margin-bottom: 2rem;
+      background: #fff;
+      border-radius: 5px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      padding: 1.5rem;
+    }
+    section h2 {
+      margin-top: 0;
+      color: #34495e;
+      border-bottom: 2px solid #ecf0f1;
+      padding-bottom: 0.5rem;
+    }
+    code {
+      background: #ecf0f1;
+      padding: 0.2rem 0.4rem;
+      border-radius: 3px;
+      font-family: Consolas, "Courier New", monospace;
+    }
+    pre {
+      background: #ecf0f1;
+      padding: 1rem;
+      overflow-x: auto;
+      border-radius: 5px;
+    }
+    footer {
+      text-align: center;
+      padding: 1rem;
+      background: #34495e;
+      color: #fff;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>ESPExpress Library Documentation</h1>
+  </header>
+  
+  <nav>
+    <a href="#overview">Overview</a>
+    <a href="#features">Features</a>
+    <a href="#usage">Usage</a>
+    <a href="#routing">Routing</a>
+    <a href="#middleware">Middleware</a>
+    <a href="#static-files">Static Files</a>
+    <a href="#template">Template Rendering</a>
+  </nav>
+
+  <div class="container">
+    <section id="overview">
+      <h2>Overview</h2>
+      <p>
+        ESPExpress is a lightweight web server framework designed for ESP32 devices.
+        It provides an easy-to-use API to handle HTTP requests, serve static files, and manage middleware,
+        all while leveraging the resources available on embedded devices.
+      </p>
+    </section>
+
+    <section id="features">
+      <h2>Key Features</h2>
+      <ul>
+        <li>Handles standard HTTP methods: <code>GET</code>, <code>POST</code>, <code>PUT</code>, <code>DELETE</code>, and <code>OPTIONS</code>.</li>
+        <li>Route parameter extraction for dynamic URL segments.</li>
+        <li>Middleware support for request pre-processing.</li>
+        <li>Static file serving from SPIFFS.</li>
+        <li>Basic templating engine to render HTML pages with variable substitutions.</li>
+        <li>CORS support to manage cross-origin requests.</li>
+      </ul>
+    </section>
+
+    <section id="usage">
+      <h2>Usage</h2>
+      <p>
+        To get started, include the <code>ESPExpress.h</code> header file in your project.
+        You can then register routes and middleware, and start the server by calling the <code>listen()</code> method.
+      </p>
+      <pre><code>
+// Initialize the server on port 80
+ESPExpress app(80);
+
+// Define a route for GET requests
+app.get("/hello", [](Request &req, Response &res) {
+  res.send("Hello from ESPExpress!");
+});
+
+// Start the server
+app.listen("Server is running...");
+      </code></pre>
+    </section>
+
+    <section id="routing">
+      <h2>Routing</h2>
+      <p>
+        ESPExpress allows you to define routes for different HTTP methods. Routes can include parameters, for example:
+      </p>
+      <pre><code>
+app.get("/user/:id", [](Request &req, Response &res) {
+  String userId = req.getParam("id");
+  res.send("User ID: " + userId);
+});
+      </code></pre>
+      <p>
+        The library uses a simple pattern matching algorithm to extract and decode URL parameters.
+      </p>
+    </section>
+
+    <section id="middleware">
+      <h2>Middleware</h2>
+      <p>
+        Middleware functions in ESPExpress allow you to execute code before the final route handler.
+        They are ideal for tasks like logging, authentication, or modifying the request and response objects.
+      </p>
+      <pre><code>
+app.use([](Request &req, Response &res, std::function<void()> next) {
+  // Custom middleware logic here
+  Serial.println("Request received: " + req.path);
+  next(); // Proceed to the next middleware or route handler
+});
+      </code></pre>
+    </section>
+
+    <section id="static-files">
+      <h2>Static File Serving</h2>
+      <p>
+        To serve static files (e.g., HTML, CSS, JS, images), map a virtual path to a SPIFFS directory using the <code>serveStatic</code> method.
+      </p>
+      <pre><code>
+app.serveStatic("/public", "/spiffs/public");
+      </code></pre>
+      <p>
+        Files stored in SPIFFS will be served with their appropriate content type based on the file extension.
+      </p>
+    </section>
+
+    <section id="template">
+      <h2>Template Rendering</h2>
+      <p>
+        ESPExpress includes a simple templating function that allows you to serve HTML files with dynamic content.
+        Placeholders in your HTML file should be in the form <code>{{variable}}</code>, and you can pass a map of variable values to replace them.
+      </p>
+      <pre><code>
+std::map<String, String> vars;
+vars["title"] = "Welcome";
+vars["message"] = "Hello from ESPExpress!";
+app.render(res, "/spiffs/templates/index.html", vars);
+      </code></pre>
+    </section>
+  </div>
+
+  <footer>
+    <p>&copy; 2025 ESPExpress Library. All Rights Reserved.</p>
+  </footer>
+</body>
+</html>
