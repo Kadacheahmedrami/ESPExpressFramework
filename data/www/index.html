@@ -85,6 +85,7 @@
     <a href="#middleware">Middleware</a>
     <a href="#static-files">Static Files</a>
     <a href="#template">Template Rendering</a>
+    <a href="#websockets">websockets</a>
   </nav>
 
   <div class="container">
@@ -186,6 +187,38 @@ vars["message"] = "Hello from ESPExpress!";
 app.render(res, "/spiffs/templates/index.html", vars);
       </code></pre>
     </section>
+
+    <section id="websockets">
+        <h2>WebSockets</h2>
+        <p>
+          ESPExpress supports WebSockets, allowing real-time, bidirectional communication between the server and clients.
+          This is particularly useful for applications requiring low-latency updates, such as IoT dashboards.
+        </p>
+        <pre><code>
+  // Create a WebSocket route
+  app.websocket("/ws", [](WebSocket &ws) {
+    ws.onMessage([](String message) {
+      Serial.println("Received: " + message);
+      ws.send("Echo: " + message);
+    });
+  });
+        </code></pre>
+        <p>
+          Clients can connect to the WebSocket using JavaScript:
+        </p>
+        <pre><code>
+  const socket = new WebSocket("ws://192.168.1.115/ws");
+  
+  socket.onopen = () => {
+    console.log("Connected to WebSocket");
+    socket.send("Hello, ESPExpress!");
+  };
+  
+  socket.onmessage = (event) => {
+    console.log("Message from server:", event.data);
+  };
+        </code></pre>
+      </section>
   </div>
 
   <footer>
