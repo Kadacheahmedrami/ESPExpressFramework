@@ -266,11 +266,23 @@ bool Route::matches(HttpMethod m, const String& reqPath, std::map<String, String
 }
 
 // -------------------------
+// WebSocket Implementation
+// -------------------------
+
+// Callback adapter to handle WebSocket events
+void webSocketEventHandler(uint8_t num, WStype_t type, uint8_t* payload, size_t length) {
+  // This function will be replaced with a lambda that calls the instance method
+}
+
+// -------------------------
 // ESPExpress Implementation
 // -------------------------
 
 ESPExpress::ESPExpress(uint16_t port)
-  : _server(port), _corsEnabled(false), _corsOrigin("*") {
+  : _server(port), _corsEnabled(false), _corsOrigin("*"), 
+    _wsEnabled(false), _webSocketServer(nullptr),
+    _wsConnectCallback(nullptr), _wsDisconnectCallback(nullptr), 
+    _wsMessageCallback(nullptr), _wsEventCallback(nullptr) {
   // For ESP32, initialize SPIFFS if using it.
   if (!SPIFFS.begin(true)) {
     Serial.println("SPIFFS Mount Failed");
@@ -279,6 +291,9 @@ ESPExpress::ESPExpress(uint16_t port)
 
 ESPExpress::~ESPExpress() {
   _server.stop();
+  if (_webSocketServer != nullptr) {
+    delete _webSocketServer;
+  }
 }
 
 ESPExpress& ESPExpress::get(const String& path, HandlerFunction handler) {
@@ -362,6 +377,105 @@ ESPExpress& ESPExpress::enableCORS(const String& origin) {
   return *this;
 }
 
+// WebSocket implementation
+ESPExpress& ESPExpress::ws(const String& path, WebSocketEventCallback callback) {
+  _wsPath = path;
+  _wsEventCallback = callback;
+  _wsEnabled = true;
+  
+  // Create WebSocket server on port 81 (standard WebSocket port)
+  if (_webSocketServer == nullptr) {
+    _webSocketServer = new WebSocketsServer(81);
+    
+    // Set up WebSocket server callback
+    _webSocketServer->onEvent([this](uint8_t num, WStype_t type, uint8_t* payload, size_t length) {
+      this->handleWebSocketEvent(num, type, payload, length);
+    });
+    
+    // Start WebSocket server
+    _webSocketServer->begin();
+  }
+  
+  return *this;
+}
+
+void ESPExpress::handleWebSocketEvent(uint8_t num, WStype_t type, uint8_t* payload, size_t length) {
+  // If user provided a callback for all events, call it
+  if (_wsEventCallback) {
+    _wsEventCallback(num, type, payload, length);
+    return;
+  }
+  
+  // Otherwise handle specific event types
+  switch (type) {
+    case WStype_CONNECTED:
+      if (_wsConnectCallback) _wsConnectCallback(num);
+      break;
+      
+    case WStype_DISCONNECTED:
+      if (_wsDisconnectCallback) _wsDisconnectCallback(num);
+      break;
+      
+    case WStype_TEXT:
+    case WStype_BIN:
+      if (_wsMessageCallback) _wsMessageCallback(num, payload, length);
+      break;
+      
+    default:
+      // Other event types not handled specifically
+      break;
+  }
+}
+
+ESPExpress& ESPExpress::onWsConnect(WebSocketClientCallback callback) {
+  _wsConnectCallback = callback;
+  return *this;
+}
+
+ESPExpress& ESPExpress::onWsDisconnect(WebSocketClientCallback callback) {
+  _wsDisconnectCallback = callback;
+  return *this;
+}
+
+ESPExpress& ESPExpress::onWsMessage(WebSocketMessageCallback callback) {
+  _wsMessageCallback = callback;
+  return *this;
+}
+
+void ESPExpress::wsBroadcast(uint8_t* payload, size_t length) {
+  if (_wsEnabled && _webSocketServer != nullptr) {
+    _webSocketServer->broadcastBIN(payload, length);
+  }
+}
+
+void ESPExpress::wsBroadcastTXT(const String& text) {
+  if (_wsEnabled && _webSocketServer != nullptr) {
+    String mutableText = text;  // Create a mutable copy
+    _webSocketServer->broadcastTXT(mutableText);
+  }
+}
+
+
+void ESPExpress::wsSend(uint8_t num, uint8_t* payload, size_t length) {
+  if (_wsEnabled && _webSocketServer != nullptr) {
+    _webSocketServer->sendBIN(num, payload, length);
+  }
+}
+
+void ESPExpress::wsSendTXT(uint8_t num, const String& text) {
+  if (_wsEnabled && _webSocketServer != nullptr) {
+    String mutableText = text;  // Create a mutable copy
+    _webSocketServer->sendTXT(num, mutableText);
+  }
+}
+
+
+void ESPExpress::wsLoop() {
+  if (_wsEnabled && _webSocketServer != nullptr) {
+    _webSocketServer->loop();
+  }
+}
+
 void ESPExpress::listen(const char* message) {
   _server.begin();
   if (message) {
@@ -370,11 +484,21 @@ void ESPExpress::listen(const char* message) {
     Serial.println("ESPExpress server started");
   }
   
+  if (_wsEnabled && _webSocketServer != nullptr) {
+    Serial.println("WebSocket server started on path: " + _wsPath);
+  }
+  
   while (true) {
     WiFiClient client = _server.available();
     if (client) {
       processClient(client);
     }
+    
+    // Handle WebSocket events if enabled
+    if (_wsEnabled && _webSocketServer != nullptr) {
+      _webSocketServer->loop();
+    }
+    
     delay(1);
   }
 }
@@ -419,6 +543,15 @@ void ESPExpress::processClient(WiFiClient& client) {
   }
   
   Response res(client);
+  
+  // WebSocket support - check for WebSocket upgrade request
+  if (_wsEnabled && req.method == GET && req.path == _wsPath && 
+      req.headers.find("Upgrade") != req.headers.end() && 
+      req.headers["Upgrade"] == "websocket") {
+    // Respond with a note that we're handling this on port 81
+    res.status(200).send("WebSocket service is available on port 81. Please connect to: ws://" + WiFi.localIP().toString() + ":81" + _wsPath);
+    return;
+  }
   
   // CORS handling.
   if (_corsEnabled) {

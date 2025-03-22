@@ -7,6 +7,9 @@
 #include <functional>
 #include <SPIFFS.h>
 
+// Add WebSocket library
+#include <WebSocketsServer.h>
+
 // HTTP Methods
 enum HttpMethod {
   GET,
@@ -59,6 +62,11 @@ private:
   void sendHeaders();
 };
 
+// WebSocket callback function types
+typedef std::function<void(uint8_t num, WStype_t type, uint8_t* payload, size_t length)> WebSocketEventCallback;
+typedef std::function<void(uint8_t num, uint8_t* payload, size_t length)> WebSocketMessageCallback;
+typedef std::function<void(uint8_t num)> WebSocketClientCallback;
+
 // Middleware function type
 typedef std::function<void(Request&, Response&, std::function<void()>)> MiddlewareFunction;
 
@@ -105,6 +113,21 @@ public:
   // CORS support
   ESPExpress& enableCORS(const String& origin = "*");
   
+  // WebSocket support - new methods
+  ESPExpress& ws(const String& path, WebSocketEventCallback callback);
+  ESPExpress& onWsConnect(WebSocketClientCallback callback);
+  ESPExpress& onWsDisconnect(WebSocketClientCallback callback);
+  ESPExpress& onWsMessage(WebSocketMessageCallback callback);
+  
+  // WebSocket broadcast and send methods
+  void wsBroadcast(uint8_t* payload, size_t length);
+  void wsBroadcastTXT(const String& text);
+  void wsSend(uint8_t num, uint8_t* payload, size_t length);
+  void wsSendTXT(uint8_t num, const String& text);
+  
+  // WebSocket loop method - must be called in Arduino loop()
+  void wsLoop();
+  
 private:
   WiFiServer _server;
   std::vector<Route> _routes;
@@ -113,10 +136,22 @@ private:
   bool _corsEnabled;
   String _corsOrigin;
   
+  // WebSocket server - new private members
+  WebSocketsServer* _webSocketServer;
+  bool _wsEnabled;
+  String _wsPath;
+  WebSocketEventCallback _wsEventCallback;
+  WebSocketClientCallback _wsConnectCallback;
+  WebSocketClientCallback _wsDisconnectCallback;
+  WebSocketMessageCallback _wsMessageCallback;
+  
   void processClient(WiFiClient& client);
   void handleRequest(Request& req, Response& res);
   bool serveStaticFile(Request& req, Response& res);
   void applyMiddleware(Request& req, Response& res, size_t index);
+  
+  // WebSocket internal event handler
+  void handleWebSocketEvent(uint8_t num, WStype_t type, uint8_t* payload, size_t length);
 };
 
 // Utility functions

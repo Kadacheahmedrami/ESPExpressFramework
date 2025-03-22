@@ -1,5 +1,3 @@
-#include <WiFi.h>
-#include <SPIFFS.h>
 #include "ESPExpress.h"
 
 // Replace with your WiFi credentials
@@ -100,6 +98,29 @@ void setup() {
     app.render(res, "/www/template.html", vars);
   });
   
+
+
+  // WebSocket setup
+  app.ws("/ws", [](uint8_t num, WStype_t type, uint8_t* payload, size_t length) {
+    // Handle all WebSocket events directly
+    switch (type) {
+      case WStype_CONNECTED:
+        Serial.printf("WebSocket client #%u connected\n", num);
+        break;
+      case WStype_DISCONNECTED:
+        Serial.printf("WebSocket client #%u disconnected\n", num);
+        break;
+      case WStype_TEXT:
+        Serial.printf("Received text from client #%u: %s\n", num, payload);
+        // Echo back the message
+        app.wsSendTXT(num, String((char*)payload));
+        break;
+    }
+  });
+  
+
+
+
   // -------------------------
   // Start the server
   // -------------------------
@@ -109,4 +130,5 @@ void setup() {
 
 void loop() {
   // Nothing here because the server runs in an infinite loop inside app.listen()
+  app.wsLoop();
 }
