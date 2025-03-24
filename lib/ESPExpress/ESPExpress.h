@@ -1,3 +1,13 @@
+/**
+ * ESPExpress - Express.js-inspired web framework for ESP32/ESP8266
+ * 
+ * @file ESPExpress.h
+ * @version 1.0.0
+ * @author Your Name
+ * @license MIT
+ */
+
+
 #ifndef ESP_EXPRESS_H
 #define ESP_EXPRESS_H
 
