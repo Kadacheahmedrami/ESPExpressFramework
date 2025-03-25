@@ -1,5 +1,4 @@
 #include "ESPExpress.h"
-#include <WiFi.h>
 #include <SPIFFS.h>
 #include "websocket/websocket.h"      // Import WebSocket routes
 #include "routeExamples/routeExamples.h"  // Import HTTP route examples
