@@ -165,6 +165,39 @@ void registerRouteExamples(ESPExpress &app) {
 }
 ```
 
+## 📁 Static Files and Data Folder
+
+### File Location for Static Content
+
+When working with ESPExpress, all static files such as HTML, CSS, JavaScript, images, and other web content should be placed in the `data/www/` directory of your project. This is the default location from which the framework serves static files using SPIFFS (SPI Flash File System).
+
+**Example Project Structure:**
+```
+your_project/
+├── data/
+│   └── www/                   # All static web files go here
+│       ├── index.html         # Main page
+│       ├── styles.css         # CSS stylesheets
+│       ├── script.js          # JavaScript files
+│       ├── logo.png           # Images
+│       └── template.html      # Template for rendering
+└── ...
+```
+
+### Uploading Static Files
+
+To upload your static files to the ESP's flash memory, use the PlatformIO command:
+```bash
+pio run -t uploadfs
+```
+
+This command will package and upload all files from the `data/www/` directory to the microcontroller's file system, making them accessible through your ESPExpress routes.
+
+**Important Tips:**
+- Ensure all file paths in your code reference `/www/filename` when using `sendFile()` or `render()`.
+- Keep file names and paths consistent with how they are referenced in your code.
+- Be mindful of file size limitations of your specific ESP microcontroller's flash memory.
+
 ## 📚 Documentation
 
 ### Routing System
