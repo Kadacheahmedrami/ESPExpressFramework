@@ -1,39 +1,69 @@
 #include "routeExamples.h"
 
 void registerRouteExamples(ESPExpress &app) {
-  // Serve the index.html file on the root "/"
+  // Serve a simple welcome page on the root "/"
   app.get("/", [](Request &req, Response &res) {
-    res.sendFile("/www/index.html");
+    res.send(R"(
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Welcome to ESPExpress</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f0f0f0;
+        }
+        .welcome-container {
+            text-align: center;
+            background-color: white;
+            padding: 2rem;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            color: #333;
+        }
+    </style>
+</head>
+<body>
+    <div class="welcome-container">
+        <h1>Welcome to ESPExpress</h1>
+        <p>Your lightweight web server is up and running!</p>
+    </div>
+</body>
+</html>
+)");
   });
 
-  // GET route with a dynamic parameter: /user/:id
+  // Rest of the route handlers remain the same as in the previous example
   app.get("/user/:id", [](Request &req, Response &res) {
     String userId = req.getParam("id");
     res.send("<h1>User Profile</h1><p>User ID: " + userId + "</p>");
   });
 
-  // POST route to test receiving a body payload.
   app.post("/data", [](Request &req, Response &res) {
     res.send("<h1>POST Data Received</h1><p>Body: " + req.body + "</p>");
   });
 
-  // PUT route example.
   app.put("/update", [](Request &req, Response &res) {
     res.send("<h1>PUT Update</h1><p>Update data: " + req.body + "</p>");
   });
 
-  // DELETE route example.
   app.del("/delete", [](Request &req, Response &res) {
     res.send("<h1>DELETE Request</h1><p>Resource deleted.</p>");
   });
 
-  // OPTIONS route example (useful for CORS preflight requests).
   app.options("/test", [](Request &req, Response &res) {
     res.status(204).end();  // No Content response
   });
 
-  // Template Rendering: GET /template
-  // Capture app by reference so that we can call app.render() inside the lambda.
   app.get("/template", [&app](Request &req, Response &res) {
     std::map<String, String> vars;
     vars["title"] = "ESPExpress Template";
@@ -41,6 +71,5 @@ void registerRouteExamples(ESPExpress &app) {
     app.render(res, "/www/template.html", vars);
   });
 
-  // Static File Serving: Map URL path "/static" to SPIFFS folder "/www"
   app.serveStatic("/static", "/www");
 }
